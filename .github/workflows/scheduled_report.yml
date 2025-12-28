@@ -1,0 +1,78 @@
+name: Generate Weekly Learning Report
+
+on:
+  schedule:
+    # Запускаем каждый понедельник в 6:00 UTC (можно изменить)
+    - cron: '0 6 * * 1'
+  workflow_dispatch:  # Позволяет запустить workflow вручную из интерфейса GitHub
+    inputs:
+      report_title:
+        description: 'Название отчета'
+        required: false
+        default: 'Weekly Learning Path Analysis'
+        type: string
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Даем разрешение на запись в репозиторий (для коммита)
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Generate Analysis Report
+      id: generate
+      run: |
+        echo "Запуск анализа..."
+        # Запускаем основной скрипт, который создаст график в docs/
+        python src/main.py 2>&1 | tee analysis.log
+        echo "Анализ завершен."
+
+        # Генерируем простой текстовый отчет
+        echo "# Еженедельный отчет анализа обучения" > docs/weekly_report.md
+        echo "Дата генерации: $(date)" >> docs/weekly_report.md
+        echo "\n## Статистика выполнения" >> docs/weekly_report.md
+        echo "\`\`\`" >> docs/weekly_report.md
+        cat analysis.log >> docs/weekly_report.md
+        echo "\`\`\`" >> docs/weekly_report.md
+        echo "\n## Визуализация" >> docs/weekly_report.md
+        echo "![График корреляции](activity_correlation.png)" >> docs/weekly_report.md
+
+    - name: Commit and Push Report
+      run: |
+        # Настраиваем Git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        # Проверяем, изменились ли файлы в docs/
+        if git diff --quiet HEAD -- docs/; then
+          echo "Нет изменений для коммита."
+        else
+          # Коммитим и пушим изменения
+          git add docs/
+          git commit -m "Auto-generated weekly report [skip ci]"
+          git push
+          echo "Отчет закоммичен."
+        fi
+
+    - name: Upload Report as Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: learning-path-report
+        path: |
+          docs/
+          analysis.log
+        retention-days: 7
