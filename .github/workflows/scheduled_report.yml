@@ -37,19 +37,29 @@ jobs:
       id: generate
       run: |
         echo "Запуск анализа..."
-        # Запускаем основной скрипт, который создаст график в docs/
+        # Создаем папку docs если её нет
+        mkdir -p docs
+        
+        # Запускаем основной скрипт
         python src/main.py 2>&1 | tee analysis.log
         echo "Анализ завершен."
 
-        # Генерируем простой текстовый отчет
+        # Генерируем простой текстовый отчет только если есть результат
         echo "# Еженедельный отчет анализа обучения" > docs/weekly_report.md
         echo "Дата генерации: $(date)" >> docs/weekly_report.md
         echo "\n## Статистика выполнения" >> docs/weekly_report.md
         echo "\`\`\`" >> docs/weekly_report.md
         cat analysis.log >> docs/weekly_report.md
         echo "\`\`\`" >> docs/weekly_report.md
-        echo "\n## Визуализация" >> docs/weekly_report.md
-        echo "![График корреляции](activity_correlation.png)" >> docs/weekly_report.md
+        
+        # Проверяем, создался ли график
+        if [ -f "docs/activity_correlation.png" ]; then
+          echo "\n## Визуализация" >> docs/weekly_report.md
+          echo "![График корреляции](activity_correlation.png)" >> docs/weekly_report.md
+        else
+          echo "\n## Визуализация" >> docs/weekly_report.md
+          echo "График не был сгенерирован." >> docs/weekly_report.md
+        fi
 
     - name: Commit and Push Report
       run: |
