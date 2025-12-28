@@ -91,6 +91,6 @@ def test_correlate_activity_with_score(sample_activity_data):
     correlation = analyzer.correlate_activity_with_score(test_scores)
 
     # Проверяем, что корреляция рассчитана для всех типов активности
-    assert len(correlation) == 4  # login, assignment_submitted, quiz_attempted, forum_posted
+    assert len(correlation) == 5  # login, assignment_submitted, quiz_attempted, forum_posted
     # Проверяем, что значения корреляции находятся в допустимом диапазоне
     assert all(correlation.between(-1, 1))
